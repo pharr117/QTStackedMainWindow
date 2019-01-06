@@ -1,0 +1,83 @@
+from PySide2.QtWidgets import QMainWindow, QWidget, QPushButton, QGridLayout, QStackedWidget, QDockWidget
+from PySide2.QtCore import Slot, Qt
+
+class BaseButton(QPushButton):
+    def __init__(self, label_text, callback_func):
+        super().__init__(label_text)
+        self.clicked.connect(callback_func)
+        self.setStyleSheet("max-width: 80px; max-height: 40px")
+
+class MainWindow(QMainWindow):
+
+    def __init__(self, stack_widgets):
+        super().__init__()
+        self.curr_page = 0
+        self.title = 'CashTrack'
+        self.left = 100
+        self.top = 100
+        self.width = 640
+        self.height = 480
+        self.num_pages = len(stack_widgets)
+        self.stack_widgets = stack_widgets
+        self.initUI()
+
+    def initUI(self):
+        self.setWindowTitle(self.title)
+        self.setGeometry(self.left, self.top, self.width, self.height)
+
+        #stacked widget to hold all the pages
+        self.pageStack = QStackedWidget()
+
+        #the stacked widgets are all widgets passed to the
+        #constructor of the mainwindow class  and will be cyclable
+        for x in range(len(self.stack_widgets)):
+            self.pageStack.addWidget(self.stack_widgets[x])
+        self.setCentralWidget(self.pageStack)
+
+        #adds a dock widget to the bottom containing a next button
+        buttonDockWidget = QDockWidget()
+        buttonDockWidget.setAllowedAreas(Qt.BottomDockWidgetArea)
+
+        #adding a widget that holds the button allows for layout in the dock
+        #area
+        buttonWidget = QWidget()
+        self.dockLayout = QGridLayout()
+
+        self.nextButton = BaseButton("Next", self.cycle_forward)
+        self.prevButton = BaseButton("Prev", self.cycle_back)
+        self.prevButton.setEnabled(False)
+
+        self.dockLayout.addWidget(self.prevButton, 0, 0)
+        self.dockLayout.addWidget(self.nextButton, 0, 1)
+        self.dockLayout.setAlignment(Qt.AlignRight)
+        buttonWidget.setLayout(self.dockLayout)
+
+        #put the the forward and backward button
+        #on the widget that will be put on the dock
+        buttonDockWidget.setWidget(buttonWidget)
+        buttonDockWidget.setFeatures(QDockWidget.NoDockWidgetFeatures)
+
+        #put empty widget on the title bar to make it empty
+        buttonDockWidget.setTitleBarWidget(QWidget())
+        self.addDockWidget(Qt.BottomDockWidgetArea, buttonDockWidget)
+        self.show()
+
+    @Slot()
+    def cycle_forward(self):
+        self.curr_page+=1
+        if self.curr_page == self.num_pages - 1:
+            self.nextButton.setEnabled(False)
+        if self.curr_page >= 1:
+            self.prevButton.setEnabled(True)
+
+        self.pageStack.setCurrentIndex(self.curr_page)
+
+    @Slot()
+    def cycle_back(self):
+        self.curr_page -= 1
+        if self.curr_page == 0:
+            self.prevButton.setEnabled(False)
+        if self.curr_page < self.num_pages:
+            self.nextButton.setEnabled(True)
+
+        self.pageStack.setCurrentIndex(self.curr_page)
